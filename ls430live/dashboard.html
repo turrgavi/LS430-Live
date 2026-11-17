@@ -6,515 +6,677 @@
 <title>LS430 Live</title>
 <style>
 :root {
-  --bg: #eef1f5; --side: #0f1720; --side-ink: #c9d2dd; --side-muted: #7d8a99; --side-line: #1f2a36;
-  --panel: #ffffff; --ink: #18202a; --muted: #697586; --line: #e1e6ec; --soft: #f5f7fa;
-  --accent: #2563eb; --accent-ink: #ffffff; --good: #15803d; --good-bg: #e8f5ec; --warn: #b45309; --warn-bg: #fdf3e3;
-  --bad: #c2362b; --bad-bg: #fbeceb; --track: #e6eaf0; --chart: #2563eb;
-  --radius: 12px; --shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+  color-scheme: light dark;
+  --win: #ffffff; --side: #f1f1f4; --side-line: #e2e2e7; --sel: rgba(0,0,0,.075);
+  --ink: #1d1d1f; --ink2: #3a3a3c; --muted: #86868b; --line: #e5e5ea; --fill: #f5f5f7; --fill2: #ececf0;
+  --accent: #007aff; --accent-soft: rgba(0,122,255,.10); --green: #28a745; --green-soft: rgba(40,167,69,.12);
+  --orange: #e8890c; --orange-soft: rgba(255,149,0,.13); --red: #ff3b30; --red-ink: #d70015; --red-soft: rgba(255,59,48,.10);
+  --track: #e9e9ee; --card-shadow: 0 0 0 .5px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.06);
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0b1016; --side: #080c11; --side-line: #18212b; --panel: #131a22; --ink: #e6ebf1; --muted: #8995a5;
-          --line: #232d39; --soft: #18212b; --accent: #4f8cff; --good: #3fbf72; --good-bg: #12291c; --warn: #e3a336;
-          --warn-bg: #2b2212; --bad: #ef6b5f; --bad-bg: #2e1715; --track: #222c38; --chart: #4f8cff;
-          --shadow: none; }
+  :root { --win: #1e1e1e; --side: #262628; --side-line: #343437; --sel: rgba(255,255,255,.09);
+          --ink: #f5f5f7; --ink2: #d1d1d6; --muted: #98989d; --line: #38383a; --fill: #2a2a2c; --fill2: #333336;
+          --accent: #0a84ff; --accent-soft: rgba(10,132,255,.18); --green: #32d74b; --green-soft: rgba(50,215,75,.15);
+          --orange: #ff9f0a; --orange-soft: rgba(255,159,10,.16); --red: #ff453a; --red-ink: #ff6961; --red-soft: rgba(255,69,58,.16);
+          --track: #3a3a3c; --card-shadow: 0 0 0 .5px rgba(255,255,255,.08); }
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-       display: grid; grid-template-columns: 252px 1fr; }
-/* ---- sidebar ---- */
-aside { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; padding: 18px 14px; gap: 18px;
-        position: sticky; top: 0; height: 100vh; overflow: auto; }
-.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
-.brand svg { flex: none; }
-.brand b { display: block; color: #fff; font-size: 15px; letter-spacing: .2px; }
-.brand span { font-size: 12px; color: var(--side-muted); }
-nav { display: flex; flex-direction: column; gap: 2px; }
-nav button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px;
-             color: var(--side-ink); font-weight: 500; }
-nav button:hover { background: var(--side-line); }
-nav button.active { background: #1c2a3a; color: #fff; }
-nav button .badge { margin-left: auto; background: var(--bad); color: #fff; border-radius: 10px; font-size: 11px; padding: 1px 7px; font-weight: 700; }
-nav svg { width: 17px; height: 17px; flex: none; opacity: .9; }
-.conn { margin-top: auto; background: #111c27; border: 1px solid var(--side-line); border-radius: var(--radius); padding: 12px; display: grid; gap: 8px; }
-.conn label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--side-muted); }
-.conn select, .conn input { width: 100%; background: #0b131c; color: var(--side-ink); border: 1px solid var(--side-line); }
-.conn .st { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--side-ink); min-height: 20px; }
-.conn .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-button.side { background: transparent; color: var(--side-ink); border-color: #2b3a4a; }
-.checks { list-style: none; margin: 0; padding: 0; font-size: 12px; display: grid; gap: 4px; }
-.checks li { display: grid; grid-template-columns: 16px 1fr; gap: 6px; }
-.checks .ok { color: #3fbf72; } .checks .no { color: #ef6b5f; }
-.checks small { display: block; color: var(--side-muted); }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: #5b6675; flex: none; }
-.dot.connected { background: #3fbf72; box-shadow: 0 0 0 3px rgba(63,191,114,.18); }
-.dot.connecting { background: #e3a336; animation: pulse 1s infinite; }
-@keyframes pulse { 50% { opacity: .35; } }
-/* ---- controls ---- */
-select, input, button.btn { font: inherit; padding: 8px 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
-button.btn { cursor: pointer; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; justify-content: center; }
-button.btn:hover:not(:disabled) { filter: brightness(.97); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
-button.ghost { background: transparent; }
-button.rec.on { background: var(--bad); border-color: var(--bad); color: #fff; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
-.seg button { all: unset; cursor: pointer; padding: 7px 11px; font-weight: 600; font-size: 12.5px; color: var(--muted); }
-.seg button.on { background: var(--soft); color: var(--ink); }
-/* ---- main ---- */
-main { min-width: 0; padding: 22px 28px 40px; }
-.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-.top h1 { font-size: 21px; margin: 0; letter-spacing: -.2px; }
-.top .sub { color: var(--muted); font-size: 13px; }
-.top .right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.page { display: none; } .page.on { display: block; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
-.card > header { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
-.card > header h2 { font-size: 13.5px; margin: 0; font-weight: 650; }
-.card > header .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.card .body { padding: 14px 16px; }
-.stack { display: grid; gap: 16px; }
-.gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.gauge { padding: 14px 16px 10px; text-align: center; cursor: pointer; }
-.gauge .name { color: var(--muted); font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; text-align: left; }
-.gauge svg { width: 100%; max-width: 260px; height: auto; display: block; margin: 0 auto; }
-.gauge .val { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: -54px; }
-.gauge .unit { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
-.groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.row { display: grid; grid-template-columns: 1fr 86px 70px; align-items: center; gap: 10px; padding: 9px 16px; border-top: 1px solid var(--line); cursor: pointer; }
-.card > header + .row { border-top: 0; }
-.row:hover { background: var(--soft); }
-.row.sel { background: var(--soft); box-shadow: inset 3px 0 0 var(--accent); }
-.row .lbl { color: var(--muted); }
-.row .v { text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; font-size: 15px; }
-.row .v small { color: var(--muted); font-weight: 500; font-size: 11.5px; margin-left: 3px; }
-.row canvas { width: 70px; height: 24px; display: block; }
-#big { width: 100%; height: 240px; display: block; }
-.empty { color: var(--muted); padding: 34px 16px; text-align: center; }
-.banner { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 14px 16px; margin-bottom: 16px;
-          border-color: var(--warn); background: var(--warn-bg); }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+       color: var(--ink); background: var(--win); display: grid; grid-template-columns: 224px 1fr;
+       -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none; cursor: default; }
+.selectable, input, pre, td.code { -webkit-user-select: text; user-select: text; }
+svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- sidebar ---------- */
+aside { background: var(--side); border-right: 1px solid var(--side-line); display: flex; flex-direction: column; min-height: 0; }
+.app-id { display: flex; align-items: center; gap: 10px; padding: 20px 16px 14px; }
+.app-id b { display: block; font-size: 13.5px; }
+.app-id span { color: var(--muted); font-size: 11.5px; }
+.nav { flex: 1; overflow: auto; padding: 0 10px; }
+.nav h6 { margin: 14px 8px 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.nav button { all: unset; display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box; padding: 6px 9px;
+              border-radius: 6px; color: var(--ink2); font-weight: 500; }
+.nav button svg { color: var(--accent); }
+.nav button:hover { background: var(--sel); }
+.nav button.active { background: var(--sel); color: var(--ink); }
+.nav .count { margin-left: auto; font-size: 11px; font-weight: 600; color: #fff; background: var(--red); border-radius: 9px; padding: 0 6px; line-height: 17px; }
+.side-foot { border-top: 1px solid var(--side-line); padding: 12px 14px 14px; display: grid; gap: 8px; }
+.conn-line { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.conn-line small { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #aeaeb2; flex: none; }
+.dot.on { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.dot.wait { background: var(--orange); animation: pulse 1.1s ease-in-out infinite; }
+.dot.bad { background: var(--red); }
+@keyframes pulse { 50% { opacity: .3; } }
+.ver { color: var(--muted); font-size: 11px; }
+
+/* ---------- main ---------- */
+main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.toolbar { height: 52px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 20px;
+           border-bottom: 1px solid var(--line); background: var(--win); }
+.toolbar h1 { font-size: 15px; font-weight: 650; margin: 0; }
+.toolbar .sub { color: var(--muted); font-size: 12px; margin-left: 2px; }
+.toolbar .spacer { flex: 1; }
+.scroll { flex: 1; overflow: auto; padding: 22px 24px 32px; min-height: 0; }
+.page { display: none; max-width: 1180px; margin: 0 auto; } .page.on { display: block; }
+.grid { display: grid; gap: 14px; }
+.cols-2 { grid-template-columns: 1fr 1fr; } .cols-3 { grid-template-columns: repeat(3, 1fr); } .cols-4 { grid-template-columns: repeat(4, 1fr); }
+.card { background: var(--win); border-radius: 12px; box-shadow: var(--card-shadow); }
+@media (prefers-color-scheme: dark) { .card { background: #252527; } }
+.card-h { display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; }
+.card-h h2 { margin: 0; font-size: 13px; font-weight: 650; }
+.card-h .r { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+.pad { padding: 14px 16px 16px; }
+.section-title { font-size: 13px; font-weight: 650; margin: 22px 2px 10px; }
 .muted { color: var(--muted); }
-.banner.info { border-color: var(--accent); background: var(--panel); }
-.ver { font-size: 11px; color: var(--side-muted); padding: 0 6px; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.stat { padding: 14px 16px; }
-.stat .k { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-.stat .n { font-size: 26px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 650; }
-.pill.good { color: var(--good); background: var(--good-bg); } .pill.bad { color: var(--bad); background: var(--bad-bg); }
-.pill.warn { color: var(--warn); background: var(--warn-bg); } .pill.neutral { color: var(--muted); background: var(--soft); }
+
+/* ---------- controls ---------- */
+.btn { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 28px;
+       padding: 0 12px; border-radius: 7px; font-weight: 500; font-size: 13px; white-space: nowrap; background: var(--fill2); color: var(--ink); }
+.btn:hover:not([disabled]) { filter: brightness(.96); }
+@media (prefers-color-scheme: dark) { .btn:hover:not([disabled]) { filter: brightness(1.15); } }
+.btn:active:not([disabled]) { filter: brightness(.9); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.danger { background: var(--red); color: #fff; }
+.btn.plain { background: transparent; color: var(--accent); padding: 0 6px; }
+.btn.lg { height: 34px; padding: 0 18px; font-size: 13.5px; border-radius: 8px; }
+.btn.rec-on { background: var(--red-soft); color: var(--red-ink); }
+.btn[disabled] { opacity: .4; }
+.icon-btn { all: unset; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; color: var(--ink2); }
+.icon-btn:hover { background: var(--sel); } .icon-btn.on { background: var(--accent-soft); color: var(--accent); }
+.seg { display: inline-flex; background: var(--fill2); border-radius: 8px; padding: 2px; gap: 2px; }
+.seg button { all: unset; padding: 0 12px; height: 24px; display: inline-flex; align-items: center; border-radius: 6px; font-weight: 500; color: var(--ink2); font-size: 12.5px; }
+.seg button.on { background: var(--win); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.05); }
+@media (prefers-color-scheme: dark) { .seg button.on { background: #636366; } }
+.seg[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+input.text { font: inherit; height: 28px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--win); color: var(--ink); width: 100%; outline: none; }
+input.text:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.switch { position: relative; width: 38px; height: 22px; flex: none; display: inline-block; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span { position: absolute; inset: 0; background: var(--track); border-radius: 22px; transition: background .2s; }
+.switch span::after { content: ""; position: absolute; width: 18px; height: 18px; left: 2px; top: 2px; background: #fff; border-radius: 50%;
+                      transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.switch input:checked + span { background: var(--red); }
+.switch input:checked + span::after { transform: translateX(16px); }
+.switch input:disabled + span { opacity: .45; }
+.tag { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; }
+.tag.green { background: var(--green-soft); color: var(--green); } .tag.red { background: var(--red-soft); color: var(--red-ink); }
+.tag.orange { background: var(--orange-soft); color: var(--orange); } .tag.grey { background: var(--fill2); color: var(--muted); }
+details summary { cursor: pointer; color: var(--muted); font-size: 12px; list-style: none; }
+details summary::before { content: "›"; display: inline-block; margin-right: 6px; transition: transform .15s; }
+details[open] summary::before { transform: rotate(90deg); }
+
+/* ---------- banners ---------- */
+.banner { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; }
+.banner.blue { background: var(--accent-soft); } .banner.orange { background: var(--orange-soft); }
+.banner .grow { flex: 1; }
+
+/* ---------- home ---------- */
+.hero { display: flex; align-items: center; gap: 22px; padding: 6px 2px 20px; }
+.hero h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+.hero p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.action { padding: 20px; display: flex; flex-direction: column; gap: 12px; min-height: 236px; }
+.action .ico { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.action .ico svg { width: 22px; height: 22px; }
+.action h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.action p { margin: 0; color: var(--muted); }
+.action .foot { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.prep { list-style: none; margin: 0; padding: 0; }
+.prep li { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-top: 1px solid var(--line); }
+.prep li:first-child { border-top: 0; }
+.prep .st { margin-left: auto; }
+.kv { display: grid; grid-template-columns: repeat(4, 1fr); }
+.kv > div { padding: 14px 16px; border-left: 1px solid var(--line); }
+.kv > div:first-child { border-left: 0; }
+.kv .k { color: var(--muted); font-size: 11.5px; font-weight: 500; }
+.kv .v { font-size: 22px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -.3px; }
+.kv .v small { font-size: 12px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+
+/* ---------- cable check ---------- */
+.steps { list-style: none; margin: 0; padding: 4px 0; }
+.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 12px 18px; position: relative; }
+.steps li + li::before { content: ""; position: absolute; left: 32px; top: -9px; height: 18px; width: 2px; background: var(--line); }
+.si { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--fill2); color: var(--muted); font-weight: 600; font-size: 12px; }
+.si svg { width: 14px; height: 14px; stroke-width: 2.6; }
+.si.pass { background: var(--green); color: #fff; } .si.fail { background: var(--red); color: #fff; }
+.si.running { background: var(--accent-soft); }
+.si.running::after { content: ""; width: 14px; height: 14px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.steps .t { font-weight: 600; font-size: 13.5px; } .steps .d { color: var(--muted); }
+.steps .det { margin-top: 3px; font-size: 12px; }
+.steps .det.fail { color: var(--red-ink); } .steps .det.pass { color: var(--green); }
+.result { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; margin-bottom: 14px; }
+.result.ok { background: var(--green-soft); } .result.bad { background: var(--red-soft); } .result.idle { background: var(--fill); }
+.result h3 { margin: 0; font-size: 14.5px; } .result p { margin: 2px 0 0; color: var(--muted); }
+.big-ico { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; color: #fff; }
+.big-ico svg { width: 20px; height: 20px; stroke-width: 2.6; }
+
+/* ---------- live ---------- */
+.gauge { padding: 12px 16px 14px; position: relative; cursor: pointer; }
+.gauge .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+.gauge svg { display: block; width: 100%; max-width: 250px; margin: 2px auto 0; }
+.gauge .read { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; }
+.gauge .num { font-size: 32px; font-weight: 700; letter-spacing: -.8px; font-variant-numeric: tabular-nums; line-height: 1; }
+.gauge .unit { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.gauge.sel { box-shadow: 0 0 0 2px var(--accent); }
+.list .row { display: grid; grid-template-columns: 1fr auto 64px; align-items: center; gap: 12px; padding: 8px 16px; cursor: pointer; border-top: 1px solid var(--line); }
+.list .row:first-child { border-top: 0; }
+.list .row:hover { background: var(--fill); }
+.list .row.sel { background: var(--accent-soft); }
+.list .row .n { color: var(--ink2); }
+.list .row .v { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; min-width: 72px; }
+.list .row .v small { color: var(--muted); font-weight: 400; font-size: 11.5px; margin-left: 3px; }
+.list .row canvas { width: 64px; height: 22px; display: block; }
+#big { width: 100%; height: 220px; display: block; }
+.empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+.empty h3 { color: var(--ink); margin: 10px 0 4px; font-size: 15px; }
+
+/* ---------- codes ---------- */
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; padding: 9px 16px; border-bottom: 1px solid var(--line); }
-td { padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { text-align: left; font-size: 11.5px; color: var(--muted); font-weight: 500; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+td { padding: 10px 16px; border-bottom: 1px solid var(--line); }
 tr:last-child td { border-bottom: 0; }
-td.code { font: 600 14px ui-monospace, "SF Mono", Menlo, monospace; white-space: nowrap; }
-.write.unlocked { border-color: var(--bad); }
-.switch { position: relative; width: 40px; height: 22px; flex: none; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.switch span { position: absolute; inset: 0; background: var(--track); border-radius: 22px; transition: .15s; cursor: pointer; }
-.switch span::after { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
-.switch input:checked + span { background: var(--bad); }
-.switch input:checked + span::after { transform: translateX(18px); }
-.switch input:disabled + span { opacity: .5; cursor: not-allowed; }
-ul.safety { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
-ul.safety li { margin: 3px 0; }
-dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; max-width: 520px; width: calc(100% - 32px); background: var(--panel); color: var(--ink); }
-dialog::backdrop { background: rgba(5,10,16,.55); }
-dialog .body { padding: 20px 22px; }
-dialog h3 { margin: 0 0 8px; font-size: 17px; }
-dialog footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--soft); border-radius: 0 0 14px 14px; }
-dialog input { width: 100%; margin-top: 6px; font-family: ui-monospace, Menlo, monospace; letter-spacing: 1px; }
-#log { font: 12px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); max-height: 150px; overflow: auto; white-space: pre-wrap; margin: 0; padding: 12px 16px; }
-.foot { color: var(--muted); font-size: 12px; margin-top: 14px; }
-.steps { margin: 6px 0 0; padding-left: 20px; } .steps li { margin: 5px 0; }
-@media (max-width: 1100px) { .groups { grid-template-columns: 1fr 1fr; } .stats { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 820px) {
-  body { grid-template-columns: 1fr; }
-  aside { position: static; height: auto; padding: 14px 16px; }
-  nav { flex-direction: row; flex-wrap: wrap; }
-  main { padding: 16px; }
-  .gauges, .groups { grid-template-columns: 1fr; }
-  .banner { flex-direction: column; align-items: stretch; }
+td.code { font: 600 13px "SF Mono", ui-monospace, Menlo, monospace; white-space: nowrap; width: 90px; }
+.danger-zone.armed { box-shadow: 0 0 0 1.5px var(--red); }
+.bul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); } .bul li { margin: 3px 0; }
+
+/* ---------- console & toast ---------- */
+.console { flex: none; height: 0; overflow: hidden; border-top: 1px solid var(--line); background: var(--fill); transition: height .2s ease; display: flex; flex-direction: column; }
+.console.open { height: 190px; }
+.console .ch { display: flex; align-items: center; padding: 6px 14px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.console pre { flex: 1; overflow: auto; margin: 0; padding: 0 14px 10px; font: 11.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace; color: var(--ink2); white-space: pre-wrap; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); opacity: 0; transition: .25s; pointer-events: none;
+         background: rgba(30,30,32,.92); color: #fff; padding: 9px 16px; border-radius: 10px; font-weight: 500; max-width: 560px; text-align: center;
+         box-shadow: 0 8px 30px rgba(0,0,0,.25); backdrop-filter: blur(10px); z-index: 10; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+dialog { border: 0; border-radius: 14px; padding: 0; width: 420px; max-width: calc(100% - 32px); background: var(--win); color: var(--ink);
+         box-shadow: 0 20px 60px rgba(0,0,0,.35), 0 0 0 .5px rgba(0,0,0,.1); }
+@media (prefers-color-scheme: dark) { dialog { background: #2c2c2e; } }
+dialog::backdrop { background: rgba(0,0,0,.28); }
+dialog .db { padding: 22px 22px 6px; text-align: center; }
+dialog .db h3 { margin: 10px 0 6px; font-size: 14.5px; }
+dialog .db p { margin: 0 0 12px; color: var(--muted); }
+dialog .codes { font: 600 12.5px "SF Mono", ui-monospace, Menlo, monospace; margin-bottom: 12px; }
+dialog .df { display: flex; gap: 8px; padding: 14px 22px 18px; } dialog .df .btn { flex: 1; }
+
+@media (max-width: 980px) { .cols-4, .kv { grid-template-columns: 1fr 1fr; } .cols-3 { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  aside { border-right: 0; border-bottom: 1px solid var(--side-line); }
+  .nav { display: flex; flex-wrap: wrap; gap: 2px; padding-bottom: 8px; } .nav h6 { display: none; } .nav button { width: auto; }
+  .side-foot { display: none; }
+  .cols-2 { grid-template-columns: 1fr; } .scroll { padding: 16px; }
 }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6m6-6v6M6 8h12v4a6 6 0 0 1-12 0zm6 10v4"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 17h14M3 17v-4l2.2-5.2A2 2 0 0 1 7 6.5h10a2 2 0 0 1 1.8 1.3L21 13v4M3 13h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="m5 8 4 4-4 4m6 0h8"/><rect x="2" y="3" width="20" height="18" rx="3"/></symbol>
+  <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.8-4M4 4v3h3m-3 6a8 8 0 0 0 14.8 4M20 20v-3h-3"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12m-5-5 5 5 5-5M5 20h14"/></symbol>
+</svg>
+
 <aside>
-  <div class="brand">
-    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="9" fill="#2563eb"/>
-      <path d="M8 21.5l2.2-5.4a2.5 2.5 0 012.3-1.6h9a2.5 2.5 0 012.3 1.6l2.2 5.4v3a1 1 0 01-1 1h-1.5a1 1 0 01-1-1v-1H12.5v1a1 1 0 01-1 1H10a1 1 0 01-1-1z" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/>
-      <circle cx="12" cy="20.5" r="1.2" fill="#fff"/><circle cx="22" cy="20.5" r="1.2" fill="#fff"/></svg>
-    <div><b>LS430 Live</b><span>Diagnostics · UCF30</span></div>
+  <div class="app-id">
+    <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0f1720"/>
+      <path d="M17 42a17 17 0 1 1 30 0" fill="none" stroke="#2b3a4c" stroke-width="6" stroke-linecap="round"/>
+      <path d="M17 42a17 17 0 0 1 22-22" fill="none" stroke="#2f7cf6" stroke-width="6" stroke-linecap="round"/>
+      <path d="M32 36l7-11" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><circle cx="32" cy="36" r="4" fill="#fff"/></svg>
+    <div><b>LS430 Live</b><span>2002 Lexus LS430</span></div>
   </div>
-  <nav>
-    <button data-page="live" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Live data</button>
-    <button data-page="codes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>Trouble codes<span class="badge" id="codeBadge" hidden></span></button>
-    <button data-page="tests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9z"/></svg>Active tests</button>
-    <button data-page="custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Customize</button>
-  </nav>
-  <div class="conn">
-    <label for="transport">Connection</label>
-    <select id="transport">
-      <option value="mvci">Mini VCI cable</option>
-      <option value="elm">ELM / OBDLink adapter</option>
-      <option value="sim">Simulator (no car)</option>
-    </select>
-    <input id="port" placeholder="Port (auto-detect)" title="Leave empty to auto-detect /dev/cu.usbserial-*">
-    <div class="pair">
-      <button id="testBtn" class="btn side" title="Check the cable works without talking to the car">Test cable</button>
-      <button id="connectBtn" class="btn primary">Connect</button>
-    </div>
-    <div class="st"><span id="dot" class="dot"></span><span id="statusText">Not connected</span></div>
-    <ul class="checks" id="cableChecks" hidden></ul>
+  <div class="nav">
+    <h6>Vehicle</h6>
+    <button data-page="home"><svg class="i"><use href="#i-home"/></svg>Overview</button>
+    <button data-page="live"><svg class="i"><use href="#i-pulse"/></svg>Live data</button>
+    <button data-page="codes"><svg class="i"><use href="#i-warn"/></svg>Trouble codes<span class="count" id="codeCount" hidden></span></button>
+    <h6>Tools</h6>
+    <button data-page="cable"><svg class="i"><use href="#i-plug"/></svg>Cable check</button>
+    <button data-page="tests"><svg class="i"><use href="#i-tool"/></svg>Active tests</button>
+    <button data-page="custom"><svg class="i"><use href="#i-sliders"/></svg>Customize</button>
   </div>
-  <div class="ver" id="ver"></div>
+  <div class="side-foot">
+    <div class="conn-line"><span class="dot" id="dot"></span><div><span id="connTitle">Not connected</span><small id="connSub">Mini VCI</small></div></div>
+    <div class="ver" id="ver"></div>
+  </div>
 </aside>
 
 <main>
-  <div id="updateBar" class="card banner info" hidden>
-    <div><strong id="updateText">A new version is available.</strong><br>
-      <span class="muted">Download it, then drag it into Applications to replace this one. Your recordings are kept.</span></div>
-    <button id="updateBtn" class="btn primary">Download update</button>
-  </div>
-  <div id="setup" class="card banner" hidden>
-    <div><strong>One-time step: build the Mini VCI driver for this Mac.</strong><br>
-      <span class="muted">About 3 to 5 minutes, needs internet. If Apple asks to install "command line developer tools", click Install, then press this button again.</span></div>
-    <button id="buildBtn" class="btn primary">Build driver now</button>
+  <div class="toolbar">
+    <h1 id="title">Overview</h1><span class="sub" id="subtitle"></span>
+    <div class="spacer"></div>
+    <div id="tb-live" class="tb" hidden style="display:flex; gap:8px; align-items:center">
+      <div class="seg" id="units"><button data-u="metric">Metric</button><button data-u="imperial">Imperial</button></div>
+      <button class="btn" id="recBtn" disabled><svg class="i" style="width:12px;height:12px"><use href="#i-rec"/></svg><span>Record</span></button>
+      <button class="icon-btn" id="logsBtn" title="Open recordings folder"><svg class="i"><use href="#i-folder"/></svg></button>
+    </div>
+    <div id="tb-codes" class="tb" hidden><button class="btn" id="readBtn" disabled><svg class="i"><use href="#i-refresh"/></svg>Read codes</button></div>
+    <button class="btn" id="tbConnect" hidden>Disconnect</button>
+    <button class="icon-btn" id="consoleBtn" title="Show activity log"><svg class="i"><use href="#i-term"/></svg></button>
   </div>
 
-  <!-- LIVE DATA -->
-  <section class="page on" id="page-live">
-    <div class="top">
-      <div><h1>Live data</h1><div class="sub" id="liveSub">Engine computer · generic OBD-II</div></div>
-      <div class="right">
-        <div class="seg" id="units"><button data-u="metric" class="on">Metric</button><button data-u="imperial">Imperial</button></div>
-        <button id="recBtn" class="btn rec" disabled>● Record</button>
-        <button id="logsBtn" class="btn ghost">Recordings</button>
-      </div>
+  <div class="scroll">
+    <div class="banner blue" id="updateBar" hidden>
+      <svg class="i" style="color:var(--accent)"><use href="#i-down"/></svg>
+      <div class="grow"><b id="updateText">A new version is available.</b> <span class="muted">Replace the app in Applications; recordings are kept.</span></div>
+      <button class="btn primary" id="updateBtn">Download</button>
     </div>
-    <div class="stack">
-      <div class="gauges" id="gauges"></div>
-      <div class="groups" id="groups"></div>
-      <div class="card">
-        <header><h2 id="bigTitle">Trend</h2><div class="right muted" id="bigSpan"></div></header>
-        <div class="body"><canvas id="big"></canvas></div>
-      </div>
+    <div class="banner orange" id="setupBar" hidden>
+      <div class="grow"><b>The Mini VCI driver isn't built yet.</b> <span class="muted">One-time, about 3–5 minutes, needs internet.</span></div>
+      <button class="btn primary" id="buildBtn">Build driver</button>
     </div>
-  </section>
 
-  <!-- TROUBLE CODES -->
-  <section class="page" id="page-codes">
-    <div class="top">
-      <div><h1>Trouble codes</h1><div class="sub">Engine computer · stored and pending codes</div></div>
-      <div class="right"><button id="readBtn" class="btn primary" disabled>Read codes</button></div>
-    </div>
-    <div class="stack">
-      <div class="stats">
-        <div class="card stat"><div class="k">Check engine light</div><div class="n" id="milVal">–</div></div>
-        <div class="card stat"><div class="k">Stored codes</div><div class="n" id="storedN">–</div></div>
-        <div class="card stat"><div class="k">Pending codes</div><div class="n" id="pendingN">–</div></div>
-        <div class="card stat"><div class="k">Last read</div><div class="n" id="readAt" style="font-size:20px">–</div></div>
-      </div>
-      <div class="card">
-        <header><h2>Codes</h2></header>
-        <div id="codeTable"><div class="empty">Connect to read trouble codes.</div></div>
-      </div>
-      <div class="card write" id="writePanel">
-        <header>
-          <h2>Write actions</h2>
-          <div class="right">
-            <span class="pill neutral" id="lockPill">Locked</span>
-            <label class="switch" title="Unlock write actions for this session"><input type="checkbox" id="unlock" disabled><span></span></label>
+    <!-- OVERVIEW -->
+    <section class="page" id="page-home">
+      <div id="homeIdle">
+        <div class="hero">
+          <svg width="150" height="62" viewBox="0 0 150 62" aria-hidden="true" style="flex:none;color:var(--muted)">
+            <path d="M8 44c0-6 3-9 9-10l17-3 15-12c3-2 6-3 10-3h32c4 0 7 1 10 4l11 11 20 3c6 1 10 5 10 10v3c0 2-1 3-3 3h-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M37 50H8m106 0H60" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M52 31l10-9c2-2 4-2 6-2h12v11zm34 0V20h11c3 0 5 1 7 3l8 8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <circle cx="48" cy="50" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="123" cy="50" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+          <div><h2>Ready when you are</h2><p>Check the cable first, or connect straight to the engine computer.</p></div>
+        </div>
+        <div class="grid cols-2">
+          <div class="card action">
+            <div class="ico" style="background:var(--accent-soft);color:var(--accent)"><svg class="i"><use href="#i-plug"/></svg></div>
+            <h3>Check cable</h3>
+            <p>Makes sure the Mini VCI is plugged in and answering. Doesn't talk to the car, so the ignition can be off.</p>
+            <div class="foot"><button class="btn lg" id="homeCheck">Run cable check</button><span class="muted" id="homeUsb"></span></div>
           </div>
-        </header>
-        <div class="body">
-          <div style="display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap">
-            <div style="max-width:620px">
-              <strong>Clear trouble codes and turn off the check engine light</strong>
-              <ul class="safety">
-                <li>Only allowed with the <b>engine off and ignition ON</b>, car stationary. The app checks RPM and speed first.</li>
-                <li>Also erases freeze-frame data and resets emissions readiness. An inspection may fail until the car has been driven for a few days.</li>
-                <li>It doesn't fix anything. A real fault will bring the code back. Write the codes down first.</li>
-                <li>Every write is logged to <code>logs/actions.log</code>, and the lock re-engages after each one.</li>
-              </ul>
-            </div>
-            <button id="clearBtn" class="btn danger" disabled>Clear codes…</button>
-          </div>
-          <div id="simRow" class="muted" style="margin-top:12px" hidden>
-            <label><input type="checkbox" id="simEngineOff"> Simulator: engine off (ignition on)</label>
+          <div class="card action">
+            <div class="ico" style="background:var(--green-soft);color:var(--green)"><svg class="i"><use href="#i-car"/></svg></div>
+            <h3>Connect to car</h3>
+            <div><div class="seg" id="method"><button data-t="mvci">Mini VCI</button><button data-t="elm">OBDLink</button><button data-t="sim">Demo</button></div></div>
+            <details id="adv"><summary>Advanced</summary><div style="margin-top:8px"><input class="text selectable" id="port" placeholder="Serial port (leave empty to auto-detect)"></div></details>
+            <div class="foot"><button class="btn primary lg" id="homeConnect">Connect</button><span class="muted" id="connHint">Ignition on. Engine running or off.</span></div>
           </div>
         </div>
+        <div class="section-title">Before connecting</div>
+        <div class="card"><ul class="prep">
+          <li><svg class="i" style="color:var(--muted)"><use href="#i-plug"/></svg>Mini VCI plugged into the Mac<span class="st" id="prepUsb"></span></li>
+          <li><svg class="i" style="color:var(--muted)"><use href="#i-term"/></svg>Windows VM closed (only one app can use the cable)<span class="st"><span class="tag grey">Check yourself</span></span></li>
+          <li><svg class="i" style="color:var(--muted)"><use href="#i-car"/></svg>Cable in the OBD port under the dash, ignition ON<span class="st"><span class="tag grey">Check yourself</span></span></li>
+        </ul></div>
       </div>
-    </div>
-  </section>
+      <div id="homeConn" hidden>
+        <div class="hero" style="padding-bottom:16px">
+          <div><h2 id="hcTitle">Connected</h2><p id="hcSub"></p></div>
+          <div style="margin-left:auto; display:flex; gap:8px"><button class="btn" id="hcLive">Live data</button><button class="btn" id="hcCodes">Trouble codes</button></div>
+        </div>
+        <div class="card"><div class="kv">
+          <div><div class="k">Engine speed</div><div class="v" id="ov-rpm">–</div></div>
+          <div><div class="k">Coolant</div><div class="v" id="ov-cool">–</div></div>
+          <div><div class="k">Check engine light</div><div class="v" id="ov-mil" style="font-size:15px; padding-top:6px">–</div></div>
+          <div><div class="k">Stored codes</div><div class="v" id="ov-codes">–</div></div>
+        </div></div>
+      </div>
+    </section>
 
-  <!-- ACTIVE TESTS -->
-  <section class="page" id="page-tests">
-    <div class="top"><div><h1>Active tests</h1><div class="sub">Command parts directly: cooling fan, fuel pump, door locks…</div></div></div>
-    <div class="card"><div class="body">
-      <span class="pill warn">Waiting for recorded commands</span>
-      <p>Toyota never published the commands behind active tests, and they differ by computer (engine, body, doors). Guessing could leave a part switched on or confuse a module, so this page only runs commands recorded from Techstream on your own car.</p>
-      <p><strong>Next step (about 20 minutes, in your Windows VM):</strong></p>
-      <ol class="steps">
-        <li>Start a traffic recorder between Techstream and the Mini VCI. Claude will set it up.</li>
-        <li>In Techstream, run each test you want, such as cooling fan, fuel pump, or door lock. Note the time you press each button.</li>
-        <li>Send the recording to Claude. Each test is decoded and added here with its own on/off controls.</li>
-      </ol>
-      <p class="muted">Safety rules already built in for when tests arrive: write lock, engine state checks per test, an automatic "stop" command and time limit, and logging to <code>actions.log</code>.</p>
-    </div></div>
-  </section>
+    <!-- CABLE CHECK -->
+    <section class="page" id="page-cable">
+      <div class="result idle" id="cableResult">
+        <div class="big-ico" id="crIco" style="background:var(--fill2);color:var(--muted)"><svg class="i"><use href="#i-plug"/></svg></div>
+        <div style="flex:1"><h3 id="crTitle">Cable check</h3><p id="crSub">Tests the Mini VCI without sending anything to the car.</p></div>
+        <button class="btn primary lg" id="cableRun">Run check</button>
+      </div>
+      <div class="card"><ul class="steps" id="steps"></ul></div>
+      <p class="muted" style="margin:12px 4px 0">The Mini VCI can't measure the car's battery voltage (it always reports 12 V), so that isn't tested.</p>
+    </section>
 
-  <!-- CUSTOMIZE -->
-  <section class="page" id="page-custom">
-    <div class="top"><div><h1>Customize</h1><div class="sub">Body settings: auto-lock, light timers, wireless unlock…</div></div></div>
-    <div class="card"><div class="body">
-      <span class="pill warn">Waiting for recorded commands</span>
-      <p>Customization settings live in the body computers, which sit behind the gateway on Toyota's private body network. The commands for reading and changing them come from the same Techstream recording session as active tests.</p>
-      <p class="muted">When added, every setting shows its current value read from the car. Changing one needs the write lock off and a confirmation, and the old value is saved so it can be restored with one click.</p>
-    </div></div>
-  </section>
+    <!-- LIVE -->
+    <section class="page" id="page-live">
+      <div id="liveEmpty" class="card empty">
+        <svg class="i" style="width:30px;height:30px;color:var(--muted)"><use href="#i-pulse"/></svg>
+        <h3 id="leTitle">Not connected</h3><p id="leSub">Connect from the Overview to see live engine data.</p>
+        <button class="btn primary" id="leGo" style="margin-top:6px">Go to Overview</button>
+      </div>
+      <div id="liveBody" hidden>
+        <div class="grid cols-3" id="gauges"></div>
+        <div class="grid cols-3" id="groups" style="margin-top:14px"></div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-h"><h2 id="bigTitle">Trend</h2><div class="r" id="bigSpan"></div></div>
+          <div style="padding:8px 12px 12px"><canvas id="big"></canvas></div>
+        </div>
+      </div>
+    </section>
 
-  <div class="card" style="margin-top:16px">
-    <header><h2>Activity</h2><div class="right"><button class="btn ghost" id="clearLog" style="padding:4px 9px;font-size:12px">Clear</button></div></header>
+    <!-- CODES -->
+    <section class="page" id="page-codes">
+      <div class="card"><div class="kv">
+        <div><div class="k">Check engine light</div><div class="v" id="milVal" style="font-size:15px; padding-top:6px">–</div></div>
+        <div><div class="k">Stored</div><div class="v" id="storedN">–</div></div>
+        <div><div class="k">Pending</div><div class="v" id="pendingN">–</div></div>
+        <div><div class="k">Last read</div><div class="v" id="readAt" style="font-size:15px; padding-top:6px">–</div></div>
+      </div></div>
+      <div class="card" style="margin-top:14px"><div id="codeTable"></div></div>
+      <div class="card danger-zone" id="dz" style="margin-top:14px">
+        <div class="card-h"><svg class="i" style="color:var(--red)"><use href="#i-lock"/></svg><h2>Clear codes</h2>
+          <div class="r"><span id="lockLbl">Locked</span><label class="switch" title="Allow write actions this session"><input type="checkbox" id="unlock" disabled><span></span></label></div></div>
+        <div class="pad" style="display:flex; gap:20px; align-items:flex-end; flex-wrap:wrap">
+          <ul class="bul" style="flex:1; min-width:280px">
+            <li>Engine <b>off</b>, ignition <b>on</b>, car stopped. The app checks RPM and speed before sending anything.</li>
+            <li>Erases freeze-frame data and resets emissions readiness. Note the codes down first.</li>
+            <li>Logged to actions.log. The lock turns back on after each clear.</li>
+          </ul>
+          <button class="btn danger" id="clearBtn" disabled>Clear codes…</button>
+        </div>
+        <div class="pad" id="simRow" style="padding-top:0" hidden><label class="muted"><input type="checkbox" id="simEngineOff"> Demo: engine off (ignition on)</label></div>
+      </div>
+    </section>
+
+    <!-- TESTS / CUSTOM -->
+    <section class="page" id="page-tests">
+      <div class="card empty">
+        <svg class="i" style="width:30px;height:30px;color:var(--muted)"><use href="#i-tool"/></svg>
+        <h3>Active tests are on the way</h3>
+        <p style="max-width:520px;margin:0 auto">Fan, fuel pump and door-lock tests use Toyota commands that were never published. They'll be added after a short recording session with Techstream on your car, so only commands proven on your LS430 are ever sent.</p>
+        <p style="margin-top:10px"><span class="tag orange">Waiting for recording</span></p>
+      </div>
+    </section>
+    <section class="page" id="page-custom">
+      <div class="card empty">
+        <svg class="i" style="width:30px;height:30px;color:var(--muted)"><use href="#i-sliders"/></svg>
+        <h3>Customization is on the way</h3>
+        <p style="max-width:520px;margin:0 auto">Auto-lock, light timers and similar settings live in the body computers. Each will show its current value, need confirmation to change, and keep the old value so you can undo it.</p>
+        <p style="margin-top:10px"><span class="tag orange">Waiting for recording</span></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="console" id="console">
+    <div class="ch">ACTIVITY<span style="flex:1"></span><button class="btn plain" id="clearLog" style="height:22px;font-size:11.5px">Clear</button></div>
     <pre id="log"></pre>
   </div>
-  <p class="foot">Reprogramming is not supported. Reading is always safe; write actions need the lock off and a confirmation.</p>
 </main>
 
+<div class="toast" id="toast"></div>
 <dialog id="confirm">
-  <div class="body">
+  <div class="db">
+    <div class="big-ico" style="background:var(--red);margin:0 auto"><svg class="i"><use href="#i-warn"/></svg></div>
     <h3>Clear trouble codes?</h3>
-    <p class="muted" style="margin:0 0 10px">Engine off, ignition ON, car stationary. These codes will be erased:</p>
-    <div id="confirmCodes" style="font:600 14px ui-monospace,Menlo,monospace; margin-bottom:12px"></div>
-    <label for="confirmText">Type <b>CLEAR</b> to confirm</label>
-    <input id="confirmText" autocomplete="off" spellcheck="false">
+    <p>This turns off the check engine light and erases these codes:</p>
+    <div class="codes" id="confirmCodes"></div>
+    <input class="text selectable" id="confirmText" placeholder="Type CLEAR to confirm" autocomplete="off" spellcheck="false" style="text-align:center">
   </div>
-  <footer>
-    <button class="btn" id="cancelBtn">Cancel</button>
-    <button class="btn danger" id="doClearBtn" disabled>Clear codes</button>
-  </footer>
+  <div class="df"><button class="btn" id="cancelBtn">Cancel</button><button class="btn danger" id="doClearBtn" disabled>Clear codes</button></div>
 </dialog>
 
 <script>
 const $ = id => document.getElementById(id);
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
                 set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
-const SIG = {
-  rpm: { label: "Engine speed", unit: "rpm", g: [0, 7000, 6000] },
-  speed: { label: "Vehicle speed", unit: "km/h", g: [0, 260] },
-  coolant_temp: { label: "Coolant temp", unit: "C", g: [40, 120, 105] },
-  engine_load: { label: "Engine load", unit: "%", grp: "Engine" }, timing_advance: { label: "Ignition timing", unit: "°", grp: "Engine" },
-  throttle: { label: "Throttle", unit: "%", grp: "Engine" },
-  maf: { label: "Air flow (MAF)", unit: "g/s", grp: "Air intake" }, intake_air_temp: { label: "Intake air temp", unit: "C", grp: "Air intake" },
-  stft_b1: { label: "Short-term trim B1", unit: "%", grp: "Fuel trims" }, ltft_b1: { label: "Long-term trim B1", unit: "%", grp: "Fuel trims" },
-  stft_b2: { label: "Short-term trim B2", unit: "%", grp: "Fuel trims" }, ltft_b2: { label: "Long-term trim B2", unit: "%", grp: "Fuel trims" },
-};
-const GAUGES = ["rpm", "speed", "coolant_temp"], GROUPS = ["Engine", "Air intake", "Fuel trims"];
-const HISTORY_S = 120;
-let units = store.get("ls430.units") || "metric";
-let signals = [], history = {}, last = {}, selected = store.get("ls430.sel") || "rpm", state = "disconnected", st = null;
+const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const post = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
 
-function conv(name, v) {
-  const u = (SIG[name] || {}).unit;
+const SIG = {
+  rpm: { label: "Engine speed", unit: "rpm", g: [0, 7000, 6000], ticks: 7 },
+  speed: { label: "Vehicle speed", unit: "km/h", g: [0, 260], ticks: 13 },
+  coolant_temp: { label: "Coolant", unit: "C", g: [40, 120, 105], ticks: 8 },
+  engine_load: { label: "Engine load", unit: "%", grp: "Engine" }, throttle: { label: "Throttle", unit: "%", grp: "Engine" },
+  timing_advance: { label: "Ignition timing", unit: "°", grp: "Engine" },
+  maf: { label: "Air flow", unit: "g/s", grp: "Air intake" }, intake_air_temp: { label: "Intake air temp", unit: "C", grp: "Air intake" },
+  stft_b1: { label: "Short trim, bank 1", unit: "%", grp: "Fuel trims" }, ltft_b1: { label: "Long trim, bank 1", unit: "%", grp: "Fuel trims" },
+  stft_b2: { label: "Short trim, bank 2", unit: "%", grp: "Fuel trims" }, ltft_b2: { label: "Long trim, bank 2", unit: "%", grp: "Fuel trims" },
+};
+const GAUGES = ["rpm", "speed", "coolant_temp"], GROUPS = ["Engine", "Air intake", "Fuel trims"], HISTORY_S = 120;
+const PAGES = { home: ["Overview", ""], live: ["Live data", "Engine computer"], codes: ["Trouble codes", "Engine computer"],
+                cable: ["Cable check", "Mini VCI"], tests: ["Active tests", ""], custom: ["Customize", ""] };
+const METHOD_NAME = { mvci: "Mini VCI", elm: "OBDLink", sim: "Demo" };
+let units = store.get("ls430.units") || "metric", method = store.get("ls430.method") || "mvci";
+let page = store.get("ls430.page") || "home", selected = store.get("ls430.sel") || "rpm";
+let st = null, state = "disconnected", signals = [], history = {}, last = {};
+
+// ---------- helpers ----------
+function conv(n, v) {
+  const u = (SIG[n] || {}).unit;
   if (units === "imperial" && u === "C") return [v * 9 / 5 + 32, "°F"];
-  if (units === "imperial" && u === "km/h") return [v * 0.621371, "mph"];
+  if (units === "imperial" && u === "km/h") return [v * .621371, "mph"];
   return [v, u === "C" ? "°C" : u];
 }
-function fmt(v) { return v == null ? "–" : Math.abs(v) >= 100 ? Math.round(v).toString() : (Math.round(v * 10) / 10).toFixed(1); }
-function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
-function post(path, body) { return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }); }
+const fmt = v => v == null || isNaN(v) ? "–" : Math.abs(v) >= 100 ? Math.round(v).toString() : (Math.round(v * 10) / 10).toFixed(1);
+let toastT; function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 3200); }
+function seg(el, value, attr) { el.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset[attr] === value)); }
 
-// ---- navigation ----
-function show(page) {
-  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.page === page));
-  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "page-" + page));
-  store.set("ls430.page", page); if (page === "live") requestAnimationFrame(drawAll);
+// ---------- navigation ----------
+function show(p) {
+  page = PAGES[p] ? p : "home"; store.set("ls430.page", page);
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+  document.querySelectorAll(".page").forEach(s => s.classList.toggle("on", s.id === "page-" + page));
+  $("title").textContent = PAGES[page][0];
+  $("tb-live").hidden = page !== "live"; $("tb-codes").hidden = page !== "codes";
+  if (page === "live") requestAnimationFrame(drawAll);
+  render();
 }
-document.querySelectorAll("nav button").forEach(b => b.onclick = () => show(b.dataset.page));
-show(store.get("ls430.page") || "live");
+document.querySelectorAll(".nav button").forEach(b => b.onclick = () => show(b.dataset.page));
 
-// ---- controls ----
-const tSaved = store.get("ls430.transport"); if (tSaved) $("transport").value = tSaved;
-const connArgs = () => ({ transport: $("transport").value, port: $("port").value.trim() || null });
-$("connectBtn").onclick = () => {
-  if (state === "disconnected") { store.set("ls430.transport", $("transport").value); post("/connect", connArgs()); }
-  else post("/disconnect");
-};
-$("testBtn").onclick = () => post("/test-cable", connArgs());
+// ---------- actions ----------
+seg($("method"), method, "t");
+$("method").querySelectorAll("button").forEach(b => b.onclick = () => { method = b.dataset.t; store.set("ls430.method", method); seg($("method"), method, "t"); render(); });
+seg($("units"), units, "u");
+$("units").querySelectorAll("button").forEach(b => b.onclick = () => { units = b.dataset.u; store.set("ls430.units", units); seg($("units"), units, "u"); buildLive(); render(); });
+const connect = () => post("/connect", { transport: method, port: $("port").value.trim() || null });
+$("homeConnect").onclick = connect;
+$("tbConnect").onclick = () => post("/disconnect");
+const runCheck = () => { show("cable"); post("/test-cable", { transport: method === "sim" ? "sim" : "mvci", port: $("port").value.trim() || null }); };
+$("homeCheck").onclick = runCheck; $("cableRun").onclick = runCheck;
 $("recBtn").onclick = () => post("/record", { on: !(st && st.recording) });
 $("logsBtn").onclick = () => post("/open-logs");
-$("buildBtn").onclick = () => post("/build-driver");
-$("updateBtn").onclick = () => post("/open-update");
 $("readBtn").onclick = () => post("/read-codes");
+$("buildBtn").onclick = () => { post("/build-driver"); $("console").classList.add("open"); $("consoleBtn").classList.add("on"); };
+$("updateBtn").onclick = () => post("/open-update");
 $("unlock").onchange = e => post("/write-unlock", { on: e.target.checked });
 $("simEngineOff").onchange = e => post("/sim-engine", { off: e.target.checked });
+$("hcLive").onclick = () => show("live"); $("hcCodes").onclick = () => show("codes"); $("leGo").onclick = () => show("home");
+$("consoleBtn").onclick = () => { const o = $("console").classList.toggle("open"); $("consoleBtn").classList.toggle("on", o); store.set("ls430.console", o ? "1" : ""); setTimeout(drawAll, 220); };
+if (store.get("ls430.console")) { $("console").classList.add("open"); $("consoleBtn").classList.add("on"); }
 $("clearLog").onclick = () => $("log").textContent = "";
-$("transport").onchange = () => st && setStatus(st);
-document.querySelectorAll("#units button").forEach(b => {
-  b.classList.toggle("on", b.dataset.u === units);
-  b.onclick = () => { units = b.dataset.u; store.set("ls430.units", units);
-    document.querySelectorAll("#units button").forEach(x => x.classList.toggle("on", x === b)); build(); };
-});
 $("clearBtn").onclick = () => {
   const codes = (st.dtc.stored || []).concat((st.dtc.pending || []).map(c => c + " (pending)"));
-  $("confirmCodes").textContent = codes.length ? codes.join("  ·  ") : "No codes currently stored (clearing still resets readiness).";
+  $("confirmCodes").textContent = codes.length ? codes.join("  ·  ") : "No codes stored";
   $("confirmText").value = ""; $("doClearBtn").disabled = true; $("confirm").showModal(); $("confirmText").focus();
 };
-$("confirmText").oninput = e => $("doClearBtn").disabled = e.target.value.trim() !== "CLEAR";
+$("confirmText").oninput = e => $("doClearBtn").disabled = e.target.value.trim().toUpperCase() !== "CLEAR";
 $("cancelBtn").onclick = () => $("confirm").close();
-$("doClearBtn").onclick = () => { post("/clear-codes", { confirm: $("confirmText").value.trim() }); $("confirm").close(); };
+$("doClearBtn").onclick = () => { post("/clear-codes", { confirm: $("confirmText").value.trim().toUpperCase() }); $("confirm").close(); };
 
-// ---- live data rendering ----
-function gaugeSVG(name) {
-  return `<svg viewBox="0 0 200 120"><path d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="${css("--track")}" stroke-width="14" stroke-linecap="round"/>
-    <path id="arc-${name}" d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="${css("--chart")}" stroke-width="14" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/></svg>`;
-}
-function build() {
-  const names = signals.map(s => s.name);
-  const g = $("gauges"), gr = $("groups");
-  if (!names.length) {
-    g.innerHTML = ""; gr.innerHTML = `<div class="card empty" style="grid-column:1/-1">${state === "connecting"
-      ? "Waking up the engine computer… this can take up to 10 seconds." : "Turn the ignition on, choose a connection on the left, and press Connect."}</div>`;
-    drawBig(); return;
+// ---------- live data ----------
+function gaugeSVG(n) {
+  const { ticks } = SIG[n]; let t = "";
+  for (let i = 0; i <= ticks; i++) {
+    const a = Math.PI * (1 + i / ticks), r1 = 70, r2 = i % 2 ? 66 : 63;
+    t += `<line x1="${100 + r1 * Math.cos(a)}" y1="${100 + r1 * Math.sin(a)}" x2="${100 + r2 * Math.cos(a)}" y2="${100 + r2 * Math.sin(a)}" stroke="${css("--muted")}" stroke-opacity=".5" stroke-width="1.5" stroke-linecap="round"/>`;
   }
-  if (!names.includes(selected)) selected = names[0];
-  const gs = GAUGES.filter(n => names.includes(n));
-  g.innerHTML = gs.map(n =>
-    `<div class="card gauge" data-n="${n}"><div class="name">${SIG[n].label}</div>${gaugeSVG(n)}<div class="val" id="gv-${n}">–</div><div class="unit">${conv(n, 0)[1]}</div></div>`).join("");
-  gr.innerHTML = GROUPS.map(grp => {
-    const rows = names.filter(n => (SIG[n] || {}).grp === grp);
-    if (!rows.length) return "";
-    return `<div class="card"><header><h2>${grp}</h2></header>${rows.map(n =>
-      `<div class="row${n === selected ? " sel" : ""}" data-n="${n}"><span class="lbl">${SIG[n].label}</span>
-        <span class="v"><span id="rv-${n}">–</span><small>${conv(n, 0)[1]}</small></span><canvas id="sp-${n}"></canvas></div>`).join("")}</div>`;
-  }).join("");
-  document.querySelectorAll(".gauge, .row").forEach(el => el.onclick = () => select(el.dataset.n));
-  for (const n in last) paint(n);
-  drawAll();
+  return `<svg viewBox="0 0 200 112"><path d="M16 100A84 84 0 0 1 184 100" fill="none" stroke="${css("--track")}" stroke-width="11" stroke-linecap="round"/>
+    <path id="arc-${n}" d="M16 100A84 84 0 0 1 184 100" fill="none" stroke="${css("--accent")}" stroke-width="11" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" style="transition: stroke-dasharray .35s ease"/>${t}</svg>`;
 }
-function select(n) { selected = n; store.set("ls430.sel", n);
-  document.querySelectorAll(".row").forEach(r => r.classList.toggle("sel", r.dataset.n === n)); drawBig(); }
+function buildLive() {
+  const names = signals.map(s => s.name);
+  $("liveEmpty").hidden = names.length > 0; $("liveBody").hidden = !names.length;
+  if (!names.length) return;
+  if (!names.includes(selected)) selected = names[0];
+  $("gauges").innerHTML = GAUGES.filter(n => names.includes(n)).map(n =>
+    `<div class="card gauge${n === selected ? " sel" : ""}" data-n="${n}"><div class="lbl">${SIG[n].label}</div>${gaugeSVG(n)}
+      <div class="read"><div class="num" id="gv-${n}">–</div><div class="unit">${conv(n, 0)[1]}</div></div></div>`).join("");
+  $("groups").innerHTML = GROUPS.map(g => {
+    const rows = names.filter(n => (SIG[n] || {}).grp === g); if (!rows.length) return "";
+    return `<div class="card"><div class="card-h" style="padding-bottom:6px"><h2>${g}</h2></div><div class="list">${rows.map(n =>
+      `<div class="row${n === selected ? " sel" : ""}" data-n="${n}"><span class="n">${SIG[n].label}</span>
+       <span class="v"><span id="rv-${n}">–</span><small>${conv(n, 0)[1]}</small></span><canvas id="sp-${n}"></canvas></div>`).join("")}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".gauge, .row").forEach(el => el.onclick = () => {
+    selected = el.dataset.n; store.set("ls430.sel", selected);
+    document.querySelectorAll(".gauge, .row").forEach(x => x.classList.toggle("sel", x.dataset.n === selected)); drawBig(); });
+  for (const n in last) paint(n);
+  requestAnimationFrame(drawAll);
+}
 function paint(n) {
   const [v] = conv(n, last[n]);
   const gv = $("gv-" + n);
   if (gv) {
     gv.textContent = fmt(v);
-    const [lo, hi, red] = SIG[n].g, frac = Math.max(0, Math.min(1, (last[n] - lo) / (hi - lo)));
-    const arc = $("arc-" + n); arc.setAttribute("stroke-dasharray", `${frac * 100} 100`);
-    arc.setAttribute("stroke-opacity", frac > 0.005 ? 1 : 0);
-    arc.setAttribute("stroke", red && last[n] >= red ? css("--bad") : css("--chart"));
+    const [lo, hi, red] = SIG[n].g, f = Math.max(0, Math.min(1, (last[n] - lo) / (hi - lo))), arc = $("arc-" + n);
+    arc.setAttribute("stroke-dasharray", `${f * 100} 100`); arc.setAttribute("stroke-opacity", f > .005 ? 1 : 0);
+    arc.setAttribute("stroke", red && last[n] >= red ? css("--red") : css("--accent"));
   }
   const rv = $("rv-" + n); if (rv) rv.textContent = fmt(v);
 }
-function drawLine(canvas, name, axes) {
-  if (!canvas) return;
-  const pts0 = history[name] || [];
-  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
-  canvas.width = w * dpr; canvas.height = h * dpr;
-  const c = canvas.getContext("2d"); c.scale(dpr, dpr); c.clearRect(0, 0, w, h);
-  if (pts0.length < 2) { if (axes && signals.length) { c.fillStyle = css("--muted"); c.font = "13px system-ui"; c.fillText("Waiting for data…", 8, 20); } return; }
-  const pts = pts0.map(p => [p[0], conv(name, p[1])[0]]);
-  const tMax = pts[pts.length - 1][0], tMin = Math.max(pts[0][0], tMax - HISTORY_S), span = Math.max(tMax - tMin, 1);
+function drawLine(cv, n, axes) {
+  if (!cv || !cv.clientWidth) return;
+  const raw = history[n] || [], dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr; const c = cv.getContext("2d"); c.scale(dpr, dpr);
+  if (raw.length < 2) return;
+  const pts = raw.map(p => [p[0], conv(n, p[1])[0]]), tMax = pts[pts.length - 1][0], tMin = Math.max(pts[0][0], tMax - HISTORY_S), span = Math.max(tMax - tMin, 1);
   const vis = pts.filter(p => p[0] >= tMin);
   let lo = Math.min(...vis.map(p => p[1])), hi = Math.max(...vis.map(p => p[1]));
-  if (hi - lo < 1e-6) { hi += 1; lo -= 1; }
-  const pad = (hi - lo) * .1; lo -= pad; hi += pad;
-  const L = axes ? 48 : 1, B = axes ? 22 : 2, T = 4, R = axes ? 6 : 1;
+  if (hi - lo < 1e-6) { hi += 1; lo -= 1; } const pad = (hi - lo) * .12; lo -= pad; hi += pad;
+  const L = axes ? 44 : 1, B = axes ? 6 : 2, T = 6, R = 2;
   const X = t => L + (t - tMin) / span * (w - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (h - T - B);
   if (axes) {
-    c.strokeStyle = css("--line"); c.fillStyle = css("--muted"); c.font = "11px system-ui"; c.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4, y = Math.round(Y(v)) + .5;
-      c.beginPath(); c.moveTo(L, y); c.lineTo(w - R, y); c.stroke(); c.fillText(fmt(v), 4, y + 4); }
-    $("bigSpan").textContent = `last ${Math.round(span)} s`;
+    c.font = "11px -apple-system, system-ui"; c.fillStyle = css("--muted"); c.strokeStyle = css("--line"); c.lineWidth = 1;
+    for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3, y = Math.round(Y(v)) + .5;
+      c.beginPath(); c.moveTo(L, y); c.lineTo(w - R, y); c.stroke(); c.fillText(fmt(v), 2, y + 4); }
+    $("bigSpan").textContent = `Last ${Math.round(span)} s`;
   }
-  const col = css("--chart");
-  if (axes) { const grad = c.createLinearGradient(0, T, 0, h - B); grad.addColorStop(0, col + "33"); grad.addColorStop(1, col + "00");
+  const col = css("--accent");
+  if (axes) { const g = c.createLinearGradient(0, T, 0, h); g.addColorStop(0, col + "38"); g.addColorStop(1, col + "00");
     c.beginPath(); vis.forEach((p, i) => i ? c.lineTo(X(p[0]), Y(p[1])) : c.moveTo(X(p[0]), Y(p[1])));
-    c.lineTo(X(tMax), h - B); c.lineTo(X(vis[0][0]), h - B); c.closePath(); c.fillStyle = grad; c.fill(); }
-  c.strokeStyle = col; c.lineWidth = axes ? 2 : 1.4; c.lineJoin = "round";
+    c.lineTo(X(tMax), h - B); c.lineTo(X(vis[0][0]), h - B); c.closePath(); c.fillStyle = g; c.fill(); }
+  c.strokeStyle = col; c.lineWidth = axes ? 2 : 1.5; c.lineJoin = c.lineCap = "round";
   c.beginPath(); vis.forEach((p, i) => i ? c.lineTo(X(p[0]), Y(p[1])) : c.moveTo(X(p[0]), Y(p[1]))); c.stroke();
 }
-function drawBig() {
-  const s = SIG[selected];
-  $("bigTitle").textContent = s && signals.length ? `${s.label} (${conv(selected, 0)[1]})` : "Trend";
-  if (!signals.length) $("bigSpan").textContent = "";
-  drawLine($("big"), selected, true);
-}
-function drawAll() { for (const s of signals) drawLine($("sp-" + s.name), s.name, false); drawBig(); }
+function drawBig() { const s = SIG[selected]; $("bigTitle").textContent = s ? `${s.label}` : "Trend"; drawLine($("big"), selected, true); }
+function drawAll() { if (page !== "live") return; signals.forEach(s => drawLine($("sp-" + s.name), s.name, false)); drawBig(); }
 function onData(d) {
   for (const [n, v] of Object.entries(d.values)) {
     const h = history[n] = history[n] || []; h.push([d.t, v]);
     while (h.length && h[0][0] < d.t - HISTORY_S) h.shift();
     last[n] = v; paint(n);
   }
-  if ($("page-live").classList.contains("on")) drawAll();
+  if ("rpm" in last) $("ov-rpm").innerHTML = `${fmt(last.rpm)}<small>rpm</small>`;
+  if ("coolant_temp" in last) { const [v, u] = conv("coolant_temp", last.coolant_temp); $("ov-cool").innerHTML = `${fmt(v)}<small>${u}</small>`; }
+  drawAll();
 }
 
-// ---- status ----
-function setStatus(s) {
-  const sigChanged = JSON.stringify(s.signals) !== JSON.stringify(signals), stateChanged = s.state !== state;
-  st = s; state = s.state;
-  const conn = state === "connected", idle = state === "disconnected";
-  $("dot").className = "dot " + state;
-  $("statusText").textContent = conn ? s.detail : state === "connecting" ? "Connecting…"
-    : s.busy === "Testing cable" ? "Testing cable…" : "Not connected";
-  if (s.transport && !idle) $("transport").value = s.transport;
-  $("transport").disabled = $("port").disabled = !idle;
-  const needDriver = $("transport").value === "mvci" && !s.driver_ready;
+// ---------- render from status ----------
+function render() {
+  if (!st) return;
+  const s = st, conn = state === "connected", idle = state === "disconnected", d = s.dtc || {};
+  const usb = (s.ports || [])[0];
+  // sidebar connection
+  $("dot").className = "dot " + (conn ? "on" : state === "connecting" || s.busy === "Testing cable" ? "wait" : "");
+  $("connTitle").textContent = conn ? "Connected" : state === "connecting" ? "Connecting…" : s.busy === "Testing cable" ? "Checking cable…" : "Not connected";
+  $("connSub").textContent = conn ? s.detail : (METHOD_NAME[s.transport && !idle ? s.transport : method]) + (usb ? " · cable detected" : "");
   $("ver").textContent = "Version " + s.version;
+  $("subtitle").textContent = page === "cable" ? (method === "sim" ? "Demo" : "Mini VCI") : PAGES[page][1];
+  $("tbConnect").hidden = idle;
+  $("tbConnect").textContent = state === "connecting" ? "Cancel" : "Disconnect";
+  // banners
   $("updateBar").hidden = !s.update;
-  if (s.update) $("updateText").textContent = `Version ${s.update.version} is available (you have ${s.version}).`;
-  $("setup").hidden = !(needDriver || s.building);
-  $("buildBtn").disabled = s.building; $("buildBtn").textContent = s.building ? "Building… see Activity" : "Build driver now";
-  $("connectBtn").textContent = idle ? "Connect" : "Disconnect";
-  $("connectBtn").className = "btn " + (idle ? "primary" : "side");
-  $("connectBtn").disabled = s.building || !!s.busy && idle || (idle && needDriver);
-  $("testBtn").disabled = !idle || s.building || !!s.busy || $("transport").value !== "mvci" || needDriver;
-  const ck = s.cable_test, list = $("cableChecks");
-  list.hidden = !(ck && idle);
-  if (ck) list.innerHTML = ck.checks.map(([label, ok, detail]) =>
-    `<li><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✕"}</span><span>${esc(label)}${detail ? `<small>${esc(detail)}</small>` : ""}</span></li>`).join("");
-  $("recBtn").disabled = !conn; $("recBtn").classList.toggle("on", !!s.recording);
-  $("recBtn").textContent = s.recording ? `■ Stop · ${s.rows} rows` : "● Record";
-  $("liveSub").textContent = conn ? "Engine computer · " + s.detail : "Engine computer · generic OBD-II";
-  const d = s.dtc || {};
-  $("readBtn").disabled = !conn || !!s.busy; $("readBtn").textContent = s.busy === "Reading trouble codes" ? "Reading…" : "Read codes";
-  $("milVal").innerHTML = d.mil_on == null ? "–" : d.mil_on ? '<span class="pill bad">ON</span>' : '<span class="pill good">OFF</span>';
-  $("storedN").textContent = d.stored ? d.stored.length : "–";
-  $("pendingN").textContent = d.pending ? d.pending.length : "–";
+  if (s.update) $("updateText").textContent = `Version ${s.update.version} is available.`;
+  $("setupBar").hidden = !((method === "mvci" && !s.driver_ready && !s.frozen) || s.building);
+  $("buildBtn").disabled = s.building; $("buildBtn").textContent = s.building ? "Building…" : "Build driver";
+  // home
+  $("homeIdle").hidden = conn; $("homeConn").hidden = !conn;
+  seg($("method"), method, "t"); $("method").setAttribute("aria-disabled", !idle);
+  const needDriver = method === "mvci" && !s.driver_ready;
+  $("homeConnect").disabled = !idle || !!s.busy || s.building || needDriver;
+  $("homeConnect").textContent = state === "connecting" ? "Connecting…" : "Connect";
+  $("connHint").textContent = state === "connecting" ? "Waking up the engine computer (up to 10 s)…" : method === "sim" ? "Simulated car, no hardware needed." : "Ignition on. Engine running or off.";
+  $("homeCheck").disabled = $("cableRun").disabled = !idle || !!s.busy || s.building;
+  const usbTag = usb ? `<span class="tag green">${icon("check", "i")}Detected</span>` : `<span class="tag grey">Not detected</span>`;
+  $("prepUsb").innerHTML = usbTag; $("homeUsb").innerHTML = usb ? "Cable detected" : "";
+  $("hcTitle").textContent = "Connected to the engine computer"; $("hcSub").textContent = `${METHOD_NAME[s.transport] || ""} · ${s.detail}`;
+  $("ov-mil").innerHTML = d.mil_on == null ? "–" : d.mil_on ? '<span class="tag red">On</span>' : '<span class="tag green">Off</span>';
+  $("ov-codes").textContent = d.stored ? d.stored.length : "–";
+  // cable check
+  renderCable(s.cable_test, usb);
+  // live
+  $("leTitle").textContent = state === "connecting" ? "Connecting…" : "Not connected";
+  $("leSub").textContent = state === "connecting" ? "Waking up the engine computer. This can take up to 10 seconds." : "Connect from the Overview to see live engine data.";
+  $("leGo").hidden = !idle;
+  $("recBtn").disabled = !conn; $("recBtn").classList.toggle("rec-on", !!s.recording);
+  $("recBtn").querySelector("span").textContent = s.recording ? `Stop · ${s.rows}` : "Record";
+  // codes
+  $("readBtn").disabled = !conn || !!s.busy;
+  $("milVal").innerHTML = $("ov-mil").innerHTML;
+  $("storedN").textContent = d.stored ? d.stored.length : "–"; $("pendingN").textContent = d.pending ? d.pending.length : "–";
   $("readAt").textContent = d.read_at || "–";
-  const n = d.stored ? d.stored.length : 0; $("codeBadge").hidden = !n; $("codeBadge").textContent = n;
-  renderCodes(d);
+  const n = d.stored ? d.stored.length : 0; $("codeCount").hidden = !n; $("codeCount").textContent = n;
+  renderCodes(d, conn);
   $("unlock").disabled = !conn || !!s.busy; $("unlock").checked = !!s.write_unlocked;
-  $("lockPill").className = "pill " + (s.write_unlocked ? "bad" : "neutral");
-  $("lockPill").textContent = s.write_unlocked ? "Unlocked" : "Locked";
-  $("writePanel").classList.toggle("unlocked", !!s.write_unlocked);
+  $("lockLbl").textContent = s.write_unlocked ? "Unlocked" : "Locked";
+  $("dz").classList.toggle("armed", !!s.write_unlocked);
   $("clearBtn").disabled = !conn || !s.write_unlocked || !!s.busy;
   $("clearBtn").textContent = s.busy === "Clearing trouble codes" ? "Clearing…" : "Clear codes…";
   $("simRow").hidden = !(conn && s.transport === "sim"); $("simEngineOff").checked = !!s.sim_engine_off;
-  if (stateChanged && state === "connecting") { history = {}; last = {}; }
-  if (sigChanged || stateChanged) { signals = s.signals; build(); }
 }
-function renderCodes(d) {
+function renderCable(ct, usb) {
+  const steps = ct ? ct.steps : [
+    { id: "driver", title: "Driver", desc: "The Mini VCI driver is installed", state: "pending" },
+    { id: "usb", title: "USB connection", desc: "The Mac can see the cable", state: usb ? "pass" : "pending", detail: usb || "" },
+    { id: "handshake", title: "Cable responds", desc: "The cable's processor answers a secure handshake", state: "pending" },
+    { id: "kline", title: "Car link ready", desc: "The K-line channel to the engine computer opens", state: "pending" }];
+  $("steps").innerHTML = steps.map((x, i) => {
+    const ic = x.state === "pass" ? icon("check") : x.state === "fail" ? icon("x") : x.state === "running" ? "" : x.state === "skipped" ? "–" : i + 1;
+    return `<li><div class="si ${x.state}">${ic}</div><div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.desc)}</div>
+      ${x.detail ? `<div class="det ${x.state} selectable">${esc(x.detail)}</div>` : ""}</div></li>`; }).join("");
+  const r = $("cableResult"), ico = $("crIco");
+  if (ct && ct.running) { r.className = "result idle"; ico.style.background = "var(--accent)"; ico.style.color = "#fff"; ico.innerHTML = icon("plug");
+    $("crTitle").textContent = "Checking the cable…"; $("crSub").textContent = "This takes a few seconds."; }
+  else if (ct && ct.ok) { r.className = "result ok"; ico.style.background = "var(--green)"; ico.style.color = "#fff"; ico.innerHTML = icon("check");
+    $("crTitle").textContent = "Cable is working"; $("crSub").textContent = `Checked at ${ct.at}. You're ready to connect to the car.`; }
+  else if (ct) { r.className = "result bad"; ico.style.background = "var(--red)"; ico.style.color = "#fff"; ico.innerHTML = icon("x");
+    $("crTitle").textContent = "Cable check failed"; $("crSub").textContent = "See the red step below for what to try."; }
+  else { r.className = "result idle"; ico.style.background = "var(--fill2)"; ico.style.color = "var(--muted)"; ico.innerHTML = icon("plug");
+    $("crTitle").textContent = usb ? "Cable detected" : "Cable check"; $("crSub").textContent = "Tests the Mini VCI without sending anything to the car."; }
+  $("cableRun").textContent = ct && !ct.running ? "Run again" : "Run check";
+}
+function renderCodes(d, conn) {
   const box = $("codeTable");
-  if (d.stored == null) { box.innerHTML = `<div class="empty">${state === "connected" ? "Press Read codes." : "Connect to read trouble codes."}</div>`; return; }
-  const rows = d.stored.map(c => [c, "Stored", "bad"]).concat(d.pending.map(c => [c, "Pending", "warn"]));
-  if (!rows.length) { box.innerHTML = '<div class="empty"><span class="pill good">No trouble codes</span></div>'; return; }
-  box.innerHTML = `<table><thead><tr><th>Code</th><th>Status</th><th>Meaning</th></tr></thead><tbody>${rows.map(([c, t, k]) =>
-    `<tr><td class="code">${esc(c)}</td><td><span class="pill ${k}">${t}</span></td><td>${esc((d.text || {})[c] || "")}</td></tr>`).join("")}</tbody></table>`;
+  if (d.stored == null) { box.innerHTML = `<div class="empty">${conn ? "Press Read codes." : "Connect to the car to read trouble codes."}</div>`; return; }
+  const rows = d.stored.map(c => [c, "Stored", "red"]).concat(d.pending.map(c => [c, "Pending", "orange"]));
+  if (!rows.length) { box.innerHTML = `<div class="empty">${icon("check", "i")}<h3>No trouble codes</h3><p>The engine computer has nothing stored or pending.</p></div>`; return; }
+  box.innerHTML = `<table><thead><tr><th>Code</th><th>Meaning</th><th style="text-align:right">Status</th></tr></thead><tbody>${rows.map(([c, t, k]) =>
+    `<tr><td class="code">${esc(c)}</td><td class="selectable">${esc((d.text || {})[c] || "")}</td><td style="text-align:right"><span class="tag ${k}">${t}</span></td></tr>`).join("")}</tbody></table>`;
+}
+function setStatus(s) {
+  const sigChanged = JSON.stringify(s.signals) !== JSON.stringify(signals), was = state;
+  st = s; state = s.state;
+  if (s.transport && state !== "disconnected") method = s.transport;
+  if (was !== state && state === "connecting") { history = {}; last = {}; }
+  if (was === "connecting" && state === "connected" && page === "home") toast("Connected to the engine computer");
+  if (sigChanged || was !== state) { signals = s.signals; buildLive(); }
+  render();
 }
 function addLog(t) { const el = $("log"); el.textContent += t + "\n"; el.scrollTop = el.scrollHeight; }
+const TOASTS = [/Error: (.*)/, /(Cleared\..*)/, /(Clear refused: .*)/, /(Not cleared: .*)/, /(Saved \d+ rows.*)/, /(Version .* is available.*)/];
+function maybeToast(line) { for (const re of TOASTS) { const m = line.match(re); if (m) return toast(m[1]); } }
 
 const es = new EventSource("/events");
+let first = true;
 es.onmessage = e => { const m = JSON.parse(e.data);
   if (m.type === "status") setStatus(m); else if (m.type === "data") onData(m);
-  else if (m.type === "log") addLog(m.text); else if (m.type === "backlog") { $("log").textContent = ""; m.lines.forEach(addLog); } };
-es.onerror = () => { $("statusText").textContent = "App not running (start app.py)"; $("dot").className = "dot"; };
-window.addEventListener("resize", () => drawAll());
-build();
+  else if (m.type === "log") { addLog(m.text); maybeToast(m.text.slice(9)); }
+  else if (m.type === "backlog") { $("log").textContent = ""; m.lines.forEach(addLog); } };
+es.onerror = () => { $("connTitle").textContent = "App engine stopped"; $("dot").className = "dot bad"; };
+addEventListener("resize", drawAll);
+show(page);
 </script>
 </body>
 </html>

@@ -61,6 +61,7 @@ class Engine:
         self.busy = None               # text of a running one-off action
         self.cable_test = None
         self.update = None
+        self.ports = []
         self.dtc = {"stored": None, "pending": None, "mil_on": None, "dtc_count": None, "read_at": None}
 
     # --- events to the browser -------------------------------------------
@@ -78,7 +79,7 @@ class Engine:
         return {"state": self.state, "detail": self.detail, "recording": rec,
                 "transport": self.transport,
                 "driver_ready": driver_ready(), "building": self.building,
-                "version": VERSION, "update": self.update, "frozen": FROZEN,
+                "version": VERSION, "update": self.update, "frozen": FROZEN, "ports": self.ports,
                 "write_unlocked": self.write_unlocked, "busy": self.busy, "cable_test": self.cable_test,
                 "dtc": {**self.dtc, "text": {c: obd.describe_dtc(c) for c in
                                              (self.dtc["stored"] or []) + (self.dtc["pending"] or [])}},
@@ -200,57 +201,97 @@ class Engine:
         self.log(f"Trouble codes: stored {', '.join(self.dtc['stored']) or 'none'}; "
                  f"pending {', '.join(self.dtc['pending']) or 'none'}")
 
-    def test_cable(self, port=None):
+    def test_cable(self, port=None, simulate=False):
         """Check the Mini VCI works without talking to the car."""
         if self.state != "disconnected" or self.busy or self.building:
             return
         self.busy = "Testing cable"
         self.push_status()
-        threading.Thread(target=self._test_cable, args=(port,), daemon=True).start()
+        threading.Thread(target=self._test_cable, args=(port, simulate), daemon=True).start()
 
-    def _test_cable(self, port):
-        checks = []
+    CABLE_STEPS = [
+        ("driver", "Driver", "The Mini VCI driver is installed"),
+        ("usb", "USB connection", "The Mac can see the cable"),
+        ("handshake", "Cable responds", "The cable's processor answers a secure handshake"),
+        ("kline", "Car link ready", "The K-line channel to the engine computer opens"),
+    ]
 
-        def add(label, ok, detail=""):
-            checks.append((label, ok, detail))
-            self.log(("PASS  " if ok else "FAIL  ") + label + (f": {detail}" if detail else ""))
-            return ok
-        self.log("Testing the Mini VCI (no messages are sent to the car)")
+    def _test_cable(self, port, simulate):
+        steps = [{"id": i, "title": t, "desc": d, "state": "pending", "detail": ""}
+                 for i, t, d in self.CABLE_STEPS]
+        self.cable_test = {"running": True, "ok": None, "steps": steps, "at": None}
+        self.push_status()
+
+        def step(sid, state, detail=""):
+            st = next(x for x in steps if x["id"] == sid)
+            st["state"], st["detail"] = state, detail
+            if state in ("pass", "fail"):
+                self.log(("PASS  " if state == "pass" else "FAIL  ") + st["title"] + (f": {detail}" if detail else ""))
+            self.push_status()
+            if state == "running":
+                time.sleep(0.35)  # let each step be seen
+            return state == "pass"
+
+        def skip_rest():
+            for x in steps:
+                if x["state"] == "pending":
+                    x["state"] = "skipped"
+
+        self.log("Cable check started (no messages are sent to the car)")
         pt = None
         try:
+            if simulate:
+                for sid, _, _ in self.CABLE_STEPS:
+                    step(sid, "running")
+                    step(sid, "pass", {"usb": "/dev/cu.usbserial-SIM"}.get(sid, ""))
+                return
+            step("driver", "running")
             if j2534.IS_WINDOWS:
                 drivers = j2534.list_windows_drivers()
                 vci = [d for d in drivers if "vci" in str(d[0]).lower()] or drivers
-                if not add("Driver installed", bool(vci), vci[0][0] if vci else "No J2534 driver in the registry"):
-                    return
+                if not step("driver", "pass" if vci else "fail",
+                            vci[0][0] if vci else "No J2534 driver found. Reinstall the Mini VCI software."):
+                    return skip_rest()
                 lib = vci[0][1]
+                step("usb", "skipped", "Checked by the Windows driver")
             else:
                 lib = j2534.find_rmvci_library()
-                if not add("Driver built", bool(lib), "" if lib else "Click 'Build driver now'"):
-                    return
-                if sys.platform == "darwin" and not port:
-                    ports = sorted(__import__("glob").glob("/dev/cu.usbserial-*"))
-                    if not add("Cable plugged in (USB)", bool(ports), ports[0] if ports else
-                               "No /dev/cu.usbserial-* found. Check the USB plug, and that the VM isn't holding the cable"):
-                        return
+                if not step("driver", "pass" if lib else "fail",
+                            "Built into the app" if FROZEN else ("Found" if lib else "Not built yet. Use 'Build driver'.")):
+                    return skip_rest()
+                step("usb", "running")
+                if not port:
+                    ports = list_ports()
+                    if not step("usb", "pass" if ports else "fail", ports[0] if ports else
+                                "Not detected. Check the USB plug, try another port, and make sure the "
+                                "Windows VM isn't holding the cable."):
+                        return skip_rest()
                     port = ports[0]
+                else:
+                    step("usb", "pass", port)
+            step("handshake", "running")
             pt = j2534.PassThru(lib)
             try:
                 pt.open(port)
-                add("Cable answers (secure handshake)", True, "The cable's processor is running")
+                step("handshake", "pass", "Cable firmware is running")
             except j2534.J2534Error as e:
-                add("Cable answers (secure handshake)", False, str(e)[:160])
                 pt = None
-                return
+                step("handshake", "fail", "No answer. Unplug the cable, wait 5 seconds, plug it back in. "
+                     f"({str(e)[:120]})")
+                return skip_rest()
+            step("kline", "running")
             try:
                 ch = pt.connect(j2534.ISO9141, 10400, j2534.ISO9141_K_LINE_ONLY)
                 pt.disconnect(ch)
-                add("K-line channel opens", True, "Ready to talk to the engine computer")
+                step("kline", "pass", "Ready. Turn the ignition on and connect.")
             except j2534.J2534Error as e:
-                add("K-line channel opens", False, str(e)[:160])
-            checks.append(("Car power", True, "Not measurable: this cable reports a fixed 12 V"))
+                step("kline", "fail", str(e)[:160])
         except Exception as e:
-            add("Cable test", False, str(e)[:160])
+            self.log(f"Cable check error: {e}")
+            for x in steps:
+                if x["state"] == "running":
+                    x["state"], x["detail"] = "fail", str(e)[:160]
+            skip_rest()
         finally:
             if pt is not None:
                 try:
@@ -258,11 +299,23 @@ class Engine:
                 except Exception:
                     pass
                 time.sleep(1.0)  # the cable needs a moment before it can be reopened
-            ok = all(c[1] for c in checks)
-            self.log("Cable test passed: ready to connect." if ok else "Cable test found a problem (see above).")
-            self.cable_test = {"ok": ok, "checks": checks, "at": time.strftime("%H:%M:%S")}
+            ok = all(x["state"] in ("pass", "skipped") for x in steps) and any(x["state"] == "pass" for x in steps)
+            self.log("Cable check passed." if ok else "Cable check found a problem.")
+            self.cable_test = {"running": False, "ok": ok, "steps": steps, "at": time.strftime("%H:%M")}
             self.busy = None
             self.push_status()
+
+    def watch_ports(self):
+        """Notice the cable being plugged in or out, without opening it."""
+        def run():
+            last = None
+            while True:
+                ports = list_ports()
+                if ports != last:
+                    last, self.ports = ports, ports
+                    self.push_status()
+                time.sleep(2)
+        threading.Thread(target=run, daemon=True).start()
 
     def read_codes(self):
         self._action("Reading trouble codes", self._read_codes)
@@ -400,6 +453,15 @@ class Engine:
             self.push_status()
 
 
+def list_ports():
+    import glob
+    if sys.platform == "darwin":
+        return sorted(glob.glob("/dev/cu.usbserial-*"))
+    if sys.platform.startswith("linux"):
+        return sorted(glob.glob("/dev/ttyUSB*"))
+    return []
+
+
 def version_tuple(v):
     try:
         return tuple(int(x) for x in v.split("."))
@@ -491,7 +553,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/connect":
             ENGINE.connect(body.get("transport", "sim"), body.get("port"))
         elif self.path == "/test-cable":
-            ENGINE.test_cable(body.get("port"))
+            ENGINE.test_cable(body.get("port"), simulate=body.get("transport") == "sim")
         elif self.path == "/read-codes":
             ENGINE.read_codes()
         elif self.path == "/write-unlock":
@@ -522,6 +584,7 @@ def start_server():
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     ENGINE.check_update()
+    ENGINE.watch_ports()
     return server, f"http://127.0.0.1:{PORT}/"
 
 

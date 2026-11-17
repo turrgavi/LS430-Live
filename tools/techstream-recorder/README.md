@@ -1,6 +1,6 @@
 # Techstream recorder (LS430 Logger)
 
-A 32-bit Windows J2534 "pass-through" driver that sits between Techstream and
+Runs on Windows XP SP2 and later. A 32-bit Windows J2534 "pass-through" driver that sits between Techstream and
 the real Mini VCI driver. Every call goes straight to the real driver
 unchanged; a copy of what was sent and received is written to
 `C:\LS430Logger\logs\capture-*.txt`. It sends nothing of its own.

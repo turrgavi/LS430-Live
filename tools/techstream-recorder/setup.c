@@ -21,7 +21,7 @@
 #define BASE_DIR "C:\\LS430Logger"
 #define LOG_DIR  BASE_DIR "\\logs"
 #define DLL_PATH BASE_DIR "\\ls430_logger.dll"
-#define WOW      KEY_WOW64_32KEY
+#define WOW      0  /* plain flags: works on 32-bit XP; 32-bit apps on 64-bit Windows are redirected to WOW6432Node automatically */
 
 typedef struct { char key[256], name[256], lib[MAX_PATH]; } Dev;
 
@@ -166,7 +166,7 @@ static void do_install(void)
 
 static void do_uninstall(void)
 {
-    LONG r = RegDeleteKeyExA(HKEY_LOCAL_MACHINE, OUR_KEY, WOW, 0);
+    LONG r = RegDeleteKeyA(HKEY_LOCAL_MACHINE, OUR_KEY);  /* RegDeleteKeyEx is Vista+ */
     if (r == ERROR_SUCCESS || r == ERROR_FILE_NOT_FOUND)
         printf("\nRemoved the LS430 Logger device. In Techstream, set Setup > VIM Select back\n"
                "to your Mini VCI. Your recordings in %s were kept.\n", LOG_DIR);

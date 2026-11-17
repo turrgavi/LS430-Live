@@ -137,7 +137,7 @@ static int reg_get(HKEY root, const char *key, const char *val, char *out, DWORD
 {
     HKEY k;
     DWORD type, n = cap;
-    LONG r = RegOpenKeyExA(root, key, 0, KEY_READ | KEY_WOW64_32KEY, &k);
+    LONG r = RegOpenKeyExA(root, key, 0, KEY_READ, &k);
     if (r != ERROR_SUCCESS) return 0;
     r = RegQueryValueExA(k, val, NULL, &type, (BYTE *)out, &n);
     RegCloseKey(k);

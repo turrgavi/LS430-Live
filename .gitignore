@@ -1,0 +1,9 @@
+logs/
+rmvci/
+build/
+dist/
+.build-venv/
+*.dylib
+*.so
+__pycache__/
+.DS_Store

@@ -1,0 +1,40 @@
+# Builds "LS430 Live.app" on a GitHub Mac and attaches it to a Release.
+# Trigger: push a tag like v0.4.0 (the app's update check compares tags).
+name: Build Mac app
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+env:
+  RMVCI_COMMIT: 618491b4ecfe9caed91987e9457c2e6138b8ba38
+jobs:
+  mac:
+    runs-on: macos-14   # Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Mini VCI driver (rmvci)
+        run: |
+          git clone -q https://github.com/FletcherD/rmvci rmvci
+          git -C rmvci checkout -q "$RMVCI_COMMIT"
+          (cd rmvci && cargo build -p rmvci-j2534 --release)
+          cp rmvci/target/release/librmvci_j2534.dylib .
+      - name: Package app
+        run: |
+          pip install -r packaging/requirements.txt
+          pyinstaller --noconfirm --clean packaging/LS430Live.spec
+          ditto -c -k --keepParent "dist/LS430 Live.app" LS430-Live-mac.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LS430-Live-mac
+          path: LS430-Live-mac.zip
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LS430-Live-mac.zip

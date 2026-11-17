@@ -24,7 +24,7 @@ driver is built in. Recordings are saved to `~/Documents/LS430 Live/logs`.
 When a newer version is published, the app shows a "Download update" banner.
 
 Developers: `bash packaging/build_mac.sh` builds and installs the app locally;
-pushing a tag like `v0.4.1` builds a release on GitHub automatically.
+bumping `VERSION` in `ls430live/version.py` and pushing to main builds and publishes a release automatically.
 
 ## Running from source
 Double-click **`LS430 Live.command`** in Finder (first time: right-click it, choose

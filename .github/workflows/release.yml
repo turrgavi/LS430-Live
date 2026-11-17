@@ -1,9 +1,10 @@
-# Builds "LS430 Live.app" on a GitHub Mac and attaches it to a Release.
-# Trigger: push a tag like v0.4.0 (the app's update check compares tags).
+# Builds "LS430 Live.app" on a GitHub Mac and publishes it as a Release.
+# A new release is made whenever main has a VERSION (ls430live/version.py)
+# that hasn't been released yet; the app's update check compares versions.
 name: Build Mac app
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: write
@@ -11,9 +12,21 @@ env:
   RMVCI_COMMIT: 618491b4ecfe9caed91987e9457c2e6138b8ba38
 jobs:
   mac:
-    runs-on: macos-14   # Apple Silicon
+    runs-on: macos-14   # Apple Silicon (M1 and newer)
     steps:
       - uses: actions/checkout@v4
+      - name: Read version
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(python3 -c "import re;print(re.search(r'VERSION = \"([^\"]+)\"', open('ls430live/version.py').read()).group(1))")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"; echo "v$V already released; build only."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -28,13 +41,20 @@ jobs:
         run: |
           pip install -r packaging/requirements.txt
           pyinstaller --noconfirm --clean packaging/LS430Live.spec
+          test -d "dist/LS430 Live.app/Contents/MacOS"
           ditto -c -k --keepParent "dist/LS430 Live.app" LS430-Live-mac.zip
       - uses: actions/upload-artifact@v4
         with:
           name: LS430-Live-mac
           path: LS430-Live-mac.zip
-      - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish release
+        if: steps.v.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: LS430 Live ${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: LS430-Live-mac.zip
+          body: |
+            Download LS430-Live-mac.zip, unzip, and drag LS430 Live into Applications.
+            First launch: right-click > Open (or System Settings > Privacy & Security > Open Anyway).

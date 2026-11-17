@@ -7,3 +7,5 @@ dist/
 *.so
 __pycache__/
 .DS_Store
+tools/techstream-recorder/dist/
+tools/techstream-recorder/ls430_logger.dll

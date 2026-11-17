@@ -501,6 +501,7 @@ class Handler(BaseHTTPRequestHandler):
         data = body.encode() if isinstance(body, str) else body
         self.send_response(code)
         self.send_header("Content-Type", ctype)
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -579,9 +580,12 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, json.dumps(ENGINE.status()))
 
 
-def start_server():
-    """Start the local server in a background thread; returns its URL."""
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+def start_server(port=None):
+    """Start the local server in a background thread; returns its URL.
+    port=0 picks a free port, so an old copy still running can't get in the way."""
+    global PORT
+    server = ThreadingHTTPServer(("127.0.0.1", PORT if port is None else port), Handler)
+    PORT = server.server_address[1]
     threading.Thread(target=server.serve_forever, daemon=True).start()
     ENGINE.check_update()
     ENGINE.watch_ports()
